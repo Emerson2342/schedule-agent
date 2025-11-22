@@ -12,41 +12,37 @@ public class ChatController : ControllerBase
 {
     private readonly Kernel _kernel;
     private readonly SchedulePlugin _schedulePlugin;
-    private readonly Dictionary<string, ChatHistory> _histories;
+    private readonly ChatHistory _history = new ChatHistory();
+
 
     public ChatController(
         Kernel kernel,
-        SchedulePlugin schedulePlugin,
-        Dictionary<string, ChatHistory> histories
+        SchedulePlugin schedulePlugin
     )
     {
         _kernel = kernel;
         _schedulePlugin = schedulePlugin;
-        _histories = histories;
+        _history = new ChatHistory();
     }
 
-    [HttpPost("{sessionId}")]
-    public async Task<IActionResult> Chat(
-        string sessionId,
-        [FromBody] PromptRequest req
-    )
+    [HttpPost]
+    public async Task<IActionResult> Chat([FromBody] PromptRequest req)
     {
-        _kernel.Plugins.AddFromObject(_schedulePlugin, "SchedulePlugin");
-
         var chat = _kernel.GetRequiredService<IChatCompletionService>();
 
-        if (!_histories.ContainsKey(sessionId))
-            _histories[sessionId] = new ChatHistory();
 
-        var history = _histories[sessionId];
-        history.AddSystemMessage(systemMessage);
-        history.AddUserMessage(req.Prompt);
+        if (_history.Count == 0)
+            _history.AddSystemMessage(systemMessage);
+
+
+
+        _history.AddUserMessage(req.Prompt);
         var settings = new OllamaPromptExecutionSettings
         {
             FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
         };
 
-        var result = await chat.GetChatMessageContentAsync(history, executionSettings: settings, kernel: _kernel);
+        var result = await chat.GetChatMessageContentAsync(_history, executionSettings: settings, kernel: _kernel);
 
         var functionCall = result.Items.OfType<FunctionCallContent>().FirstOrDefault();
         if (functionCall != null)
@@ -59,7 +55,7 @@ public class ChatController : ControllerBase
                     arguments: functionCall.Arguments
                 );
 
-                history.AddAssistantMessage(output.ToString());
+                _history.AddAssistantMessage(output.ToString());
                 return Ok(new { content = output.ToString() });
             }
             catch (Exception ex)
@@ -70,14 +66,13 @@ public class ChatController : ControllerBase
 
         return Ok(new
         {
-            historyId = sessionId,
             content = result.Content
         });
 
     }
 
 
-    string systemMessage = """
+    readonly string systemMessage = """
 Você é um assistente integrado ao Semantic Kernel e deve sempre chamar funções seguindo um padrão obrigatório.
 
 As funções existentes e permitidas devem SEMPRE seguir o formato:

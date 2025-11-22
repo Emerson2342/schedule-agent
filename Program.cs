@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.Ollama;
 using ScheduleAgent.data;
 using ScheduleAgent.Plugins;
 
@@ -24,14 +22,15 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
 
 builder.Services.AddControllers();
 builder.Services.AddScoped<SchedulePlugin>();
-builder.Services.AddSingleton(kernelBuilder.Build());
-builder.Services.AddSingleton<Dictionary<string, ChatHistory>>();
+builder.Services.AddScoped(sp =>
+{
+    var kernel = kernelBuilder.Build();
 
+    var plugin = sp.GetRequiredService<SchedulePlugin>();
+    kernel.Plugins.AddFromObject(plugin, nameof(SchedulePlugin));
 
-//builder.Services.AddSingleton<PermissionService>();
-
-
-
+    return kernel;
+});
 
 builder.Services.AddCors(options =>
 {
@@ -40,8 +39,8 @@ builder.Services.AddCors(options =>
         policy
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials()
-            .WithOrigins("http://192.168.0.105:3000");
+            .SetIsOriginAllowed(origin => true)
+            .AllowCredentials();
     });
 });
 
