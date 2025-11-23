@@ -51,6 +51,5 @@ app.UseCors("AllowFront");
 
 app.MapControllers();
 app.Run();
-public record PromptRequest(string Prompt);
 
 

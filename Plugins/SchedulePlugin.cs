@@ -16,14 +16,14 @@ public class SchedulePlugin
     }
 
     [KernelFunction("list_event")]
-    [Description("Returns all scheduled items")]
+    [Description("Returns all events items")]
     public async Task<List<Schedule>> ListSchedules()
     {
         return await _db.Schedules.ToListAsync();
     }
 
     [KernelFunction("create_event")]
-    [Description("Creates a new schedule item")]
+    [Description("Creates a new event item")]
     public async Task<Schedule> CreateSchedule(DateTime date, string title, string description)
     {
         var item = new Schedule
@@ -39,33 +39,33 @@ public class SchedulePlugin
         return item;
     }
     [KernelFunction("update_event")]
-    [Description("Updates an existing schedule item")]
+    [Description("Updates an existing event item")]
     public async Task<string> UpdateSchedule(int id, DateTime date, string title, string description)
     {
         var item = await _db.Schedules.FindAsync(id);
 
         if (item == null)
-            return "Schedule not found.";
+            return "Event not found.";
 
         item.Date = date;
         item.Title = title;
         item.Description = description;
 
         await _db.SaveChangesAsync();
-        return "Schedule updated successfully.";
+        return "Event updated successfully.";
     }
     [KernelFunction("delete_event")]
-    [Description("Deletes a schedule item")]
+    [Description("Deletes a event item")]
     public async Task<string> DeleteSchedule(int id)
     {
         var item = await _db.Schedules.FindAsync(id);
 
         if (item == null)
-            return "Schedule not found.";
+            return "Event not found.";
 
         _db.Schedules.Remove(item);
         await _db.SaveChangesAsync();
 
-        return "Schedule deleted.";
+        return "Event deleted.";
     }
 }
